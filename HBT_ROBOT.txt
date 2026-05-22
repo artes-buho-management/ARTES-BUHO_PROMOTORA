@@ -1,0 +1,104 @@
+Option Explicit
+
+Private WithEvents oItems As Outlook.Items
+
+Private Sub Application_Startup()
+
+Dim OutlookApp As Outlook.Application
+Dim oNameSpace As Outlook.NameSpace
+
+Set OutlookApp = Outlook.Application
+Set oNameSpace = Outlook.GetNamespace("MAPI")
+Set oItems = oNameSpace.GetDefaultFolder(olFolderInbox).Items
+
+Debug.Print "Desencadenador iniciado " & VBA.Now
+
+End Sub
+
+Private Sub oItems_ItemAdd(ByVal Item As Object)
+
+On Error Resume Next
+
+Dim MyMail As Outlook.MailItem
+Dim oAtt As Outlook.Attachment
+Dim name As String
+Dim carpeta As String
+Dim archivo As String
+Dim fecha As Date
+Dim remitente As String
+Dim asunto As String
+Dim obra As String
+
+Set MyMail = Item
+
+fecha = MyMail.ReceivedTime
+remitente = MyMail.Sender
+asunto = MyMail.Subject
+
+'------------------------------------------------------------------------------------
+'MODELO ARCHIVAR CORREOS (EJEMPLO INFORME SEMANAL
+
+ReplaceIllegalChars asunto, "-"
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+        If LCase(asunto) Like "*" & "informe semanal" & "*" Then
+            carpeta = "AQUI ESCRIBIR RUTA DE DESCARGA"
+            If asunto Like "*" & "RE-" & "*" Then
+                asunto = Mid(asunto, 5)
+            ElseIf asunto Like "*" & "RV-" & "*" Then
+                asunto = Mid(asunto, 5)
+            End If
+            archivo = asunto & ".msg"
+            If Dir(carpeta & archivo, 0) <> "" Then
+            Else
+                MyMail.SaveAs (carpeta & archivo)
+            End If
+        End If
+End If
+
+'------------------------------------------------------------------------------------
+'MODELO ARCHIVAR ADJUNTOS
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+    For Each oAtt In MyMail.Attachments
+    	If oAtt.fileName Like "*" & "PlanificacionObra" & "*" Then
+		oAtt.SaveAsFile "INTRODUCE LA RUTA DE DESCARGA" & oAtt.fileName
+        End If                                            
+    Next oAtt                                                    
+End If
+
+'---------------------------------------------------------------------------------------
+'MODELO DECARJAR ADJUNTOS EN FUNCIÓN DEL ASUNTO
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+    If LCase(asunto) Like "*" & "ESCRIBIR AQUI EL CODIGO DE LA OBRA" & "*" Then
+        For Each oAtt In MyMail.Attachments
+            If LCase(oAtt.FileName) Like "*.jpg" Then
+                oAtt.SaveAsFile "INTRODUCE LA RUTA DE DESCARGA" & oAtt.fileName
+            End If
+        Next oAtt
+    End If
+End If
+
+'---------------------------------------------------------------------------------------
+
+
+'FIN - SI HAY ERROR EL PROGRAMA NO PARA
+On Error GoTo 0
+
+End Sub
+
+'COMPLEMENTA SCRIPT INFORMES SEMANALES - TRANSFORMAMOS PALABRAS MALAS
+Private Sub ReplaceIllegalChars(asunto As String, sChr As String)
+  asunto = Replace(asunto, "/", sChr)
+  asunto = Replace(asunto, "", sChr)
+  asunto = Replace(asunto, ":", sChr)
+  asunto = Replace(asunto, "?", sChr)
+  asunto = Replace(asunto, Chr(34), sChr)
+  asunto = Replace(asunto, "<", sChr)
+  asunto = Replace(asunto, ">", sChr)
+  asunto = Replace(asunto, "|", sChr)
+  asunto = Replace(asunto, "*", sChr)
+End Sub

@@ -1,0 +1,103 @@
+Option Explicit
+Private WithEvents oItems As Outlook.Items
+
+Private Sub Application_Startup()
+    Dim OutlookApp As Outlook.Application
+    Dim oNameSpace As Outlook.NameSpace
+    Set OutlookApp = Outlook.Application
+    Set oNameSpace = Outlook.GetNamespace("MAPI")
+    Set oItems = oNameSpace.GetDefaultFolder(olFolderInbox).Items
+    Debug.Print "Desencadenador iniciado " & VBA.Now
+End Sub
+
+Private Sub oItems_ItemAdd(ByVal Item As Object)
+On Error Resume Next
+Dim MyMail As Outlook.MailItem
+Dim oAtt As Outlook.Attachment
+Dim fecha As Date
+Dim remitente As String
+Dim asunto As String
+Dim obra As String
+Dim palabraClave As String
+Dim subRuta As String
+Dim rutaAnteproyecto As String
+Dim rutaBasico As String
+Dim rutaEjecutivo As String
+
+
+Set MyMail = Item
+fecha = MyMail.ReceivedTime
+remitente = MyMail.Sender
+asunto = MyMail.Subject
+
+'-----------------------------------------------------------------------------------
+'-----------------------------------------------------------------------------------
+obra = "HBT_VAL_LEDA"
+rutaAnteproyecto = "H:\LEVANTE\Promociones\LEDA-Sinfonia\03.LEDA Diseño\03.02 Anteproyecto\03.02.03 Entregas parciales"
+rutaBasico = "H:\LEVANTE\Promociones\LEDA-Sinfonia\03.LEDA Diseño\03.03 Proyecto basico\03.03.03 Entregas parciales"
+rutaEjecutivo = "H:\LEVANTE\Promociones\LEDA-Sinfonia\03.LEDA Diseño\03.04 Proyecto ejecutivo\03.04.03 Entregas parciales"
+'-----------------------------------------------------------------------------------
+subRuta = rutaAnteproyecto
+palabraClave = obra & "_ANTEPROYECTO"
+funcionPilar palabraClave, asunto, subRuta, fecha, remitente, MyMail, Item
+subRuta = rutaBasico
+palabraClave = obra & "_BASICO"
+funcionPilar palabraClave, asunto, subRuta, fecha, remitente, MyMail, Item
+subRuta = rutaEjecutivo
+palabraClave = obra & "_EJECUTIVO"
+funcionPilar palabraClave, asunto, subRuta, fecha, remitente, MyMail, Item
+'-----------------------------------------------------------------------------------
+'-----------------------------------------------------------------------------------
+
+'FIN - SI HAY ERROR EL PROGRAMA NO PARA
+On Error GoTo 0
+
+End Sub
+Private Sub funcionPilar(palabraClave As String, asunto As String, subRuta As String, fecha As Date, remitente As String, MyMail As Outlook.MailItem, ByVal Item As Object)
+    Dim num As Integer
+    Dim blanco As Integer
+    Dim code As String
+    Dim carpeta As String
+    Dim archivo As String
+    Dim oAtt As Outlook.Attachment
+    If VBA.TypeName(Item) = "MailItem" Then
+        If MyMail.Subject Like "*" & palabraClave & "*" Then
+            '****CREAMOS CARPETA****
+            num = InStr(asunto, "HBT")
+            num = InStr(num, asunto, "_")           'PRIMERA "_"
+            num = InStr(num + 1, asunto, "_")       'SEGUNDA "_"
+            num = InStr(num + 1, asunto, "_")       'TERCERA "_"
+            num = InStr(num + 1, asunto, "_")       'CUARTA "_"
+            num = num + 1
+            blanco = InStr(num + 1, asunto, " ")
+            If blanco = 0 Then
+                code = Mid(asunto, num)
+            Else
+                code = Mid(asunto, num, blanco - num)
+            End If
+            carpeta = subRuta & "\" & code & "\"
+            If Dir(carpeta, 16) = "" Then
+                CreateDir carpeta
+            End If
+            'DESCARGA DE TODOS LOS ADJUNTOS
+            For Each oAtt In MyMail.Attachments
+                    oAtt.SaveAsFile subRuta & "\" & code & "\" & oAtt.FileName
+            Next oAtt
+            'DESCARGA CORREO
+            archivo = Format(fecha, "yymmdd_") & Format(fecha, "(hh") & "." & Format(fecha, "nn") & "." & Format(fecha, "ss)_") & remitente & "_" & code & ".msg"
+            MyMail.SaveAs (carpeta & archivo)
+        End If
+    End If
+End Sub
+
+Private Sub CreateDir(strPath As String)
+    Dim elm As Variant
+    Dim strCheckPath As String
+    strCheckPath = ""
+    For Each elm In Split(strPath, "\")
+        strCheckPath = strCheckPath & elm & "\"
+        If Len(Dir(strCheckPath, vbDirectory)) = 0 Then MkDir strCheckPath
+    Next
+End Sub
+
+

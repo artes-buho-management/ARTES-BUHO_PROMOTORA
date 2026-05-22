@@ -1,0 +1,277 @@
+
+
+
+
+Option Explicit
+
+Private WithEvents oItems As Outlook.Items
+
+
+Private Sub Application_Startup()
+
+Dim OutlookApp As Outlook.Application
+Dim oNameSpace As Outlook.NameSpace
+
+Set OutlookApp = Outlook.Application
+Set oNameSpace = Outlook.GetNamespace("MAPI")
+Set oItems = oNameSpace.GetDefaultFolder(olFolderInbox).Items
+
+
+Debug.Print "Desencadenador iniciado " & VBA.Now
+
+
+
+End Sub
+
+Private Sub oItems_ItemAdd(ByVal Item As Object)
+
+'SI HAY ERROR EL PROGRAMA NO PARA
+On Error Resume Next
+
+Dim MyMail As Outlook.MailItem
+Dim oAtt As Outlook.Attachment
+Dim name As String
+Dim carpeta As String
+Dim archivo As String
+Dim fecha As Date
+Dim remitente As String
+Dim asunto As String
+Dim obra As String
+Dim semana As String
+
+Dim listaObras As Variant
+Dim j As Variant
+Dim palabraClave As String
+Dim numPalabras As Integer
+Dim subRuta As String
+
+Set MyMail = Item
+
+fecha = MyMail.ReceivedTime
+remitente = MyMail.Sender
+asunto = MyMail.Subject
+
+'------------------------------------------------------------------------------------CAMBIAR CARPETA TODAS LAS SEMANAS
+semana = "210924"
+'------------------------------------------------------------------------------------CAMBIAR CARPETA TODAS LAS SEMANAS
+
+'------------------------------------------------------------------------------------OBRAS
+
+listaObras = Array("HBT_CC_VM", "HBT_CC_LC", "HBT_CC_TD", _
+                "HBT_N_FLR", "HBT_N_MIR", "HBT_N_TCAN", _
+                "HBT_CAT_CA", "HBT_CAT_BAD", _
+                "HBT_VAL_M8", "HBT_VAL_LCON", "HBT_VAL_MP", "HBT_VAL_QC", "HBT_VAL_MO", "HBT_VAL_LS", _
+                "HBT_MAL_GUIN", _
+                "HBT_SEV_DM", "HBT_SEV_PC", "HBT_SEV_JE", "HBT_SEV_AT", "BT_SEV_QL", "HBT_SEV_PS", _
+                "HBT_MAD_ERA", "HBT_MAD_VDB", "HBT_MAD_PCV", "HBT_MAD_NCV", "HBT_MAD_VEG1", "HBT_MAD_VDM", "HBT_MAD_PVZ", "HBT_MAD_RIV", "HBT_MAD_MVEL", "HBT_MAD_MCA3")
+                
+'------------------------------------------------------------------------------------OBRAS
+
+'------------------------------------------------------------------------------------
+'ARCHIVAR SEGUIMIENTO VIVIENDAS
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+        For Each oAtt In MyMail.Attachments
+            If oAtt.FileName Like "*" & "PlanificacionObra" & "*" Then
+                oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO DE VIVIENDAS\" & semana & "\" & oAtt.FileName
+            End If
+            If oAtt.FileName Like "*" & "PersonalObra" & "*" Then
+                oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO DE VIVIENDAS\" & semana & "\" & oAtt.FileName
+            End If
+            If oAtt.FileName Like "*" & "ProduccionObra" & "*" Then
+                oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO DE VIVIENDAS\" & semana & "\" & oAtt.FileName
+            End If
+            If oAtt.FileName Like "*" & "PlanCompras" & "*" Then
+                oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO DE VIVIENDAS\" & semana & "\" & oAtt.FileName
+            End If
+        Next oAtt
+End If
+
+'------------------------------------------------------------------------------------
+'ARCHIVAR INFORME SEMANAL (NO OLVIDES CAMBIAR DE CARPETA CADA SEMANA)
+
+ReplaceIllegalChars asunto, "-"
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+        If LCase(asunto) Like "*" & "informe semanal" & "*" Then
+            carpeta = "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO SEMANAL\" & semana & "\"
+            If asunto Like "*" & "RE-" & "*" Then
+                asunto = Mid(asunto, 5)
+            ElseIf asunto Like "*" & "RV-" & "*" Then
+                asunto = Mid(asunto, 5)
+            End If
+            archivo = asunto & ".msg"
+            If Dir(carpeta & archivo, 0) <> "" Then
+            Else
+                MyMail.SaveAs (carpeta & archivo)
+            End If
+        End If
+End If
+
+'------------------------------------------------------------------------------------
+'DESCARGA ARCHIVOS ADJUNTOS SeguimientoConsumos (ConsumosAgua & Consumos electricidad)
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+    'If myMail.Subject Like "*" & "SeguimientoConsumos" & "*" Then
+        For Each oAtt In MyMail.Attachments
+            If oAtt.FileName Like "*" & "ConsumosAgua" & "*" Then
+                oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO DE CONSUMOS\" & oAtt.FileName
+            End If
+            If oAtt.FileName Like "*" & "ConsumosElectricidad" & "*" Then
+                oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO DE CONSUMOS\" & oAtt.FileName
+            End If
+        Next oAtt
+    'End If
+End If
+
+'-------------------------------------------------------------------------------------
+'DESCARGAR ControlSuministros
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+        For Each oAtt In MyMail.Attachments
+                If oAtt.FileName Like "*" & "ControlSuministros" & "*" Then
+                    If Dir("N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO ACOMETIDAS\" & semana & "\" & oAtt.FileName, vbDirectory) <> "" Then
+                    Else
+                        oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO ACOMETIDAS\" & semana & "\" & oAtt.FileName
+                    End If
+                    oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO ACOMETIDAS\" & semana & "\" & oAtt.FileName
+                 End If
+        Next oAtt
+End If
+
+'------------------------------------------------------------------------------------
+'DESCARGAR PruebasFinalesInstalaciones
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+        For Each oAtt In MyMail.Attachments
+                If oAtt.FileName Like "*" & "PruebasFinalesInstalaciones" & "*" Then
+                    If Dir("N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO PRUEBAS FINALES INSTALACIONES\" & oAtt.FileName, vbDirectory) <> "" Then
+                    Else
+                        oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO PRUEBAS FINALES INSTALACIONES\" & oAtt.FileName
+                    End If
+                    oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO PRUEBAS FINALES INSTALACIONES\" & oAtt.FileName
+                 End If
+        Next oAtt
+End If
+
+'--------------------------------------------------------------------------------------
+'DESCARGA RevisionDocumentacionComercial
+
+If VBA.TypeName(Item) = "MailItem" Then
+    Set MyMail = Item
+        For Each oAtt In MyMail.Attachments
+                If oAtt.FileName Like "*" & "RevisionDocumentacionComercial" & "*" Then
+                    If Dir("N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\REVISION DOCUMENTACION COMERCIAL\" & oAtt.FileName, vbDirectory) <> "" Then
+                    Else
+                        oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\REVISION DOCUMENTACION COMERCIAL\" & oAtt.FileName
+                    End If
+                    oAtt.SaveAsFile "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\REVISION DOCUMENTACION COMERCIAL\" & oAtt.FileName
+                 End If
+        Next oAtt
+End If
+
+'---------------------------------------------------------------------------------------
+'ARCHIVAR OrdenesCambio
+palabraClave = "OC"
+numPalabras = 5
+subRuta = "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\ORDENES DE CAMBIO\00_Registro\"
+For j = LBound(listaObras) To UBound(listaObras)
+    obra = listaObras(j) & "_" & palabraClave
+    If asunto Like "*" & obra & "*" Then
+        archivarCorreos palabraClave, numPalabras, subRuta, obra, fecha, remitente, MyMail
+        Exit For
+    End If
+Next
+
+'---------------------------------------------------------------------------------------
+'ARCHIVAR COVID-19
+palabraClave = "COVID"
+numPalabras = 5
+subRuta = "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO COVID\00_Registro"
+For j = LBound(listaObras) To UBound(listaObras)
+    obra = listaObras(j) & "_" & palabraClave
+    If asunto Like "*" & obra & "*" Then
+        archivarCorreos palabraClave, numPalabras, subRuta, obra, fecha, remitente, MyMail
+        Exit For
+    End If
+Next
+
+'---------------------------------------------------------------------------------------
+'ARCHIVAR CAMBIO COMERCIAL
+palabraClave = "COMERCIAL"
+numPalabras = 12
+subRuta = "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\CAMBIO COMERCIAL\00_Registro\"
+For j = LBound(listaObras) To UBound(listaObras)
+    obra = listaObras(j) & "_" & palabraClave
+    If asunto Like "*" & obra & "*" Then
+        archivarCorreos palabraClave, numPalabras, subRuta, obra, fecha, remitente, MyMail
+        Exit For
+    End If
+Next
+
+'---------------------------------------------------------------------------------------
+'ARCHIVAR HITOS
+palabraClave = "HITO"
+numPalabras = 7
+subRuta = "N:\500-OPERACIONES\520-DPTO. TECNICO\525-CONSTRUCCION\SEGUIMIENTO HITOS\"
+For j = LBound(listaObras) To UBound(listaObras)
+    obra = listaObras(j) & "_" & palabraClave
+    If asunto Like "*" & obra & "*" Then
+        archivarCorreos palabraClave, numPalabras, subRuta, obra, fecha, remitente, MyMail
+        Exit For
+    End If
+Next
+
+'---------------------------------------------------------------------------------------
+
+'FIN - SI HAY ERROR EL PROGRAMA NO PARA
+On Error GoTo 0
+
+End Sub
+
+'COMPLEMENTA SCRIPT INFORMES SEMANALES - TRANSFORMAMOS PALABRAS MALAS
+
+Private Sub ReplaceIllegalChars(asunto As String, sChr As String)
+  asunto = Replace(asunto, "/", sChr)
+  asunto = Replace(asunto, "", sChr)
+  asunto = Replace(asunto, ":", sChr)
+  asunto = Replace(asunto, "?", sChr)
+  asunto = Replace(asunto, Chr(34), sChr)
+  asunto = Replace(asunto, "<", sChr)
+  asunto = Replace(asunto, ">", sChr)
+  asunto = Replace(asunto, "|", sChr)
+  asunto = Replace(asunto, "*", sChr)
+End Sub
+
+
+Private Sub archivarCorreos(palabraClave As String, numPalabras As Integer, subRuta As String, obra As String, fecha As Date, remitente As String, MyMail As Outlook.MailItem)
+    
+    Dim carpeta As String
+    Dim archivo As String
+    Dim num As Integer
+    Dim carpZona As String
+    Dim carpObra As String
+    Dim code As String
+    
+    num = InStr(obra, "_")                                                                                                                      'PRIMERA "_"
+    num = InStr(num + 1, obra, "_")                                                                                                             'SEGUNDA "_"
+    carpZona = Mid(obra, 1, num - 1)                                                                                                            'CARPETA ZONA
+    num = InStr(num + 1, obra, "_")                                                                                                             'TERCERA "_"
+    carpObra = Mid(obra, 1, num - 1)                                                                                                            'CARPETA OBRA
+    code = Mid(MyMail.Subject, InStr(MyMail.Subject, "HBT"), InStr(MyMail.Subject, palabraClave) + numPalabras - InStr(MyMail.Subject, "HBT"))  'CODE
+    carpeta = subRuta & carpZona & "\" & carpObra & "\" & code & "\"
+
+    archivo = Format(fecha, "yymmdd_") & Format(fecha, "(hh") & "." & Format(fecha, "nn") & "." & Format(fecha, "ss)_") & remitente & "_" & code & ".msg"
+    
+    If Dir(carpeta, vbDirectory) <> "" Then
+        MyMail.SaveAs (carpeta & archivo)
+    Else
+        MkDir (carpeta)
+        MyMail.SaveAs (carpeta & archivo)
+    End If
+    
+End Sub
